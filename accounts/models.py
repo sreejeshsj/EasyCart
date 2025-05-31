@@ -44,7 +44,7 @@ class Accounts(AbstractBaseUser):
     phone=models.CharField(max_length=10,unique=True)
     
     #required
-    Date_joined=models.DateTimeField(auto_now_add=True)
+    date_joined=models.DateTimeField(auto_now_add=True)
     last_login=models.DateTimeField(auto_now_add=True)
     
     is_admin=models.BooleanField(default=False)
