@@ -1,7 +1,8 @@
 from django.shortcuts import render,redirect
-from store.models import Product
+from store.models import Product,Variations
 from . models import Cart,CartItem
 from django.shortcuts import HttpResponse
+
 # Create your views here.
 def _cart_id(request):
     cart=request.session.session_key
@@ -12,12 +13,20 @@ def _cart_id(request):
 
 
 def add_cart(request,product_id):
-    if request.method=='POST':
-        color=request.POST['color']
-        size=request.POST['size']
-        print(color,size)
-    
+    product_variations=[]
     product=Product.objects.get(id=product_id)
+    if request.method=='POST':
+        for item in request.POST:
+            key=item
+            value=request.POST[key]
+            try:
+                variation=Variations.objects.get(product=product,variation_category__iexact=key,variation_value__iexact=value)
+                product_variations.append(variation)
+            except:
+                pass
+   
+    
+    
     try:
         
         cart=Cart.objects.get(cart_id=_cart_id(request))
@@ -27,30 +36,45 @@ def add_cart(request,product_id):
         )
     cart.save()
     
-    try:
+    
         
-        cart_item=CartItem.objects.get(product=product,cart=cart)
-        cart_item.quantity +=1
-    except CartItem.DoesNotExist:
+    cart_item=CartItem.objects.filter(product=product,cart=cart)
+    item_found=False
+    for item in cart_item:
+        existing_variation=list(item.variations.all())
+        print(existing_variation)
+        if set(existing_variation)==set(product_variations):
+            item.quantity+=1
+            item.save()
+            item_found=True
+            break
+    if not item_found:
         cart_item=CartItem.objects.create(
             product=product,
             cart=cart,
-            quantity=1
-        )
-    cart_item.save()
+            quantity=1,
+            )
+        if product_variations:
+            cart_item.variations.set(product_variations)
+        cart_item.save()
     return redirect('cart')
-def remove_cart(request,product_id):
+def remove_cart(request,cart_item_id):
     cart=Cart.objects.get(cart_id=_cart_id(request))
-    product=Product.objects.get(id=product_id)
-    cart_item=CartItem.objects.get(cart=cart,product=product)
+    cart_item=CartItem.objects.get(id=cart_item_id,cart=cart)
     cart_item.delete()
     return redirect('cart')
-def decrease(request,product_id):
+def decrease(request,cart_item_id):
     cart=Cart.objects.get(cart_id=_cart_id(request))
-    product=Product.objects.get(id=product_id)
-    cart_item=CartItem.objects.get(cart=cart,product=product)
+    cart_item=CartItem.objects.get(cart=cart,id=cart_item_id)
     if cart_item.quantity >1 :
         cart_item.quantity-=1
+    cart_item.save()
+    return redirect('cart')
+
+def increase(request,cart_item_id):
+    cart=Cart.objects.get(cart_id=_cart_id(request))
+    cart_item=CartItem.objects.get(cart=cart,id=cart_item_id)
+    cart_item.quantity+=1
     cart_item.save()
     return redirect('cart')
         

@@ -30,7 +30,11 @@
 				<div class="aside"><img src="{{cart_item.product.image.url }}" class="img-sm"></div>
 				<figcaption class="info">
 					<a href="{{ cart_item.product.get_url }}" class="title text-dark">{{cart_item.product.product_name}}</a>
-					<p class="text-muted small">Matrix: 25 Mpx <br> Brand: Canon</p>
+					{% if cart_item.variations %}
+						{% for item in cart_item.variations.all %}
+                          <p>{{item.variation_category | capfirst }} : {{item.variation_value | capfirst }}</p>
+						{% endfor %}
+					{% endif %}
 				</figcaption>
 			</figure>
 		</td>
@@ -39,11 +43,11 @@
 						<div class="col"> 
 							<div class="input-group input-spinner">
 								<div class="input-group-prepend">
-								<a href="{% url 'decrease' cart_item.product.id %}" class="btn btn-light" type="button" id="button-plus"> <i class="fa fa-minus"></i> </a>
+								<a href="{% url 'decrease' cart_item.id %}" class="btn btn-light" type="button" id="button-plus"> <i class="fa fa-minus"></i> </a>
 								</div>
 								<input type="text" class="form-control"  value="{{cart_item.quantity}}">
 								<div class="input-group-append">
-								<a href="{% url 'add_cart' cart_item.product.id %}" class="btn btn-light" type="button" id="button-minus"> <i class="fa fa-plus"></i> </a>
+								<a href="{% url 'increase' cart_item.id %}" class="btn btn-light" type="button" id="button-minus"> <i class="fa fa-plus"></i> </a>
 								</div>
 							</div> <!-- input-group.// -->
 						</div> <!-- col.// -->
@@ -55,7 +59,7 @@
 			</div> <!-- price-wrap .// -->
 		</td>
 		<td class="text-right"> 
-		<a href="{% url 'remove_cart' cart_item.product.id %}" class="btn btn-danger"> Remove</a>
+		<a href="{% url 'remove_cart' cart_item.id %}" class="btn btn-danger" onclick=" return confirm('Are you sure do you want to remove this item')"> Remove</a>
 		</td>
 	</tr>
 	{% endfor %}
@@ -99,7 +103,7 @@
 {% else %}
   <h4 style="color:red">Your Cart Is Empty</h4><br>
 
-  <a class="btn btn-primary " style="color: white;" >Continue Shoping</a>
+  <a  href="{% url 'store' %}" class="btn btn-primary " style="color: white;" >Continue Shoping</a>
 
 {% endif %}
 </div> <!-- container .//  -->

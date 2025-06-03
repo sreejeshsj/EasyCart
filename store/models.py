@@ -41,5 +41,5 @@ class Variations(models.Model):
         verbose_name_plural='Variations'
 
     def __str__(self):
-        return self.product.product_name
+        return self.variation_value
     
