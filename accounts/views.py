@@ -5,6 +5,7 @@ from . models import Accounts
 from django.http import HttpResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate,login,logout
+import requests
 #verifiction
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string
@@ -12,6 +13,8 @@ from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail,EmailMessage
+from carts.models import Cart,CartItem
+from carts.views import _cart_id
 # Create your views here.
 
 def register(request):
@@ -57,11 +60,57 @@ def login_view(request):
     if request.method=='POST':
         email=request.POST['email']
         password=request.POST['password']
-        user=authenticate(email=email,password=password)
+        user=authenticate(request, username=email, password=password)
         if user is not None:
+            try:
+                guest_cart=Cart.objects.get(cart_id=_cart_id(request))
+                guest_cart_items=CartItem.objects.filter(cart=guest_cart)
+                print("this is guest cart:",guest_cart)
+                user_cart,_=Cart.objects.get_or_create(user=user)
+                print("this is user :",user_cart)
+                for guest_item in guest_cart_items:
+                    existing_items=CartItem.objects.filter(
+                        user=user,
+                        cart=user_cart,
+                        product=guest_item.product,
+                    )
+                    merged=False
+                    for existing_item in existing_items:
+                        if set(existing_item.variations.all()) == set(guest_item.variations.all()):
+                            existing_item.quantity+=guest_item.quantity
+                            
+                            existing_item.save()
+                            merged=True
+                            break
+                    if not merged:
+                        guest_item.user=user
+                        guest_item.cart=user_cart
+                        
+                        guest_item.save()
+               
+                guest_cart.delete()
+                
+                
+                
+                    
+            except Cart.DoesNotExist:
+                pass
+                
             login(request,user)
             messages.success(request,'You are now logged in')
-            return redirect('dashboard')
+            url=request.META.get('HTTP_REFERER')
+            try:
+                query=requests.utils.urlparse(url).query
+                print(query)
+                params = dict(x.split('=') for x in query.split('&'))
+                print(params)
+                if 'next' in params:
+                    nextPage=params['next']
+                    return redirect(nextPage)
+                
+            except:
+                return redirect('dashboard')
+            
         else:
             messages.error(request,'Invalid login Credintials')
             return redirect('login')
