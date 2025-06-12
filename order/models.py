@@ -44,6 +44,9 @@ class Order(models.Model):
     updated_at=models.DateTimeField(auto_now_add=True)
     
     
+    def full_name(self):
+        return self.first_name +" "+ self.last_name
+    
     def __str__(self):
         return self.first_name
     
